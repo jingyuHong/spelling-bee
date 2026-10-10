@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Spelling Bee 실전 · 말하기 버전</title>
+<style>
+:root{
+  --ink:#241A10; --ink-soft:#6B5843;
+  --honey:#F5B429; --honey-dk:#B36A05; --comb:#FDEFC9;
+  --bg:#FFF9EC; --moss:#2F7D5D; --clay:#B3392C; --line:#E7D5AC;
+  --ui:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif;
+  --latin:"Verdana","Trebuchet MS","DejaVu Sans",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg);
+  background-image:radial-gradient(circle at 12% 8%,rgba(245,180,41,.16),transparent 42%),
+                   radial-gradient(circle at 88% 92%,rgba(245,180,41,.12),transparent 46%);
+  color:var(--ink);font-family:var(--ui);line-height:1.6;-webkit-text-size-adjust:100%;
+}
+.wrap{max-width:520px;margin:0 auto;padding:22px 18px 60px}
+.mast{display:flex;align-items:baseline;gap:10px;margin-bottom:6px}
+.mast h1{font-family:var(--latin);font-weight:700;font-size:24px;margin:0}
+.mast span{font-size:13px;color:var(--ink-soft)}
+.tag{font-size:13px;color:var(--ink-soft);margin:0 0 16px}
+
+.panel{background:#FFFDF6;border:1.5px solid var(--line);border-radius:18px;padding:18px 16px;margin-bottom:14px}
+.panel h2{font-size:14px;margin:0 0 10px;font-weight:400;color:var(--ink-soft)}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{font-family:inherit;font-size:14px;padding:8px 13px;border-radius:999px;border:1.5px solid var(--line);background:#fff;color:var(--ink);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--honey);border-color:var(--honey-dk);font-weight:700}
+.btn{font-family:inherit;font-size:15px;padding:11px 16px;border-radius:12px;border:1.5px solid var(--line);background:#fff;color:var(--ink);cursor:pointer}
+.btn.primary{background:var(--ink);color:#FFF3D6;border-color:var(--ink);font-weight:700}
+.btn.wide{width:100%;font-size:17px;padding:14px}
+.btn.sm{font-size:14px;padding:9px 13px}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap}
+.chip:focus-visible,.btn:focus-visible,.hexbtn:focus-visible{outline:3px solid var(--honey-dk);outline-offset:2px}
+
+.meter{height:7px;background:var(--comb);border-radius:99px;overflow:hidden;margin-bottom:6px}
+.meter i{display:block;height:100%;background:var(--honey-dk);width:0;transition:width .25s}
+.count{display:flex;justify-content:space-between;font-size:13px;color:var(--ink-soft);margin-bottom:16px}
+
+.hexwrap{display:flex;justify-content:center;margin:4px 0 12px}
+.hexbtn{width:180px;height:158px;border:0;padding:0;cursor:pointer;background:var(--honey);
+  clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  color:#3A2A0C;font-family:var(--ui);font-weight:700;font-size:15px}
+.hexbtn .ico{font-size:40px;line-height:1}
+.hexbtn.live{background:var(--clay);color:#fff;animation:pulse 1.1s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.62}}
+
+.script{background:var(--comb);border-radius:12px;padding:10px 12px;font-size:14px;color:#5A4420;text-align:center}
+.script b{font-family:var(--latin);letter-spacing:.08em}
+
+.heard{min-height:46px;background:#fff;border:1.5px dashed var(--line);border-radius:12px;padding:10px 12px;font-family:var(--latin);font-size:15px;color:var(--ink-soft);word-break:break-word}
+.heard.has{color:var(--ink)}
+
+.verdict{font-family:var(--latin);font-weight:700;font-size:20px;margin:0 0 8px}
+.verdict.ok{color:var(--moss)} .verdict.no{color:var(--clay)}
+.spell{font-family:var(--latin);font-weight:700;font-size:26px;letter-spacing:.14em;word-break:break-all;margin-bottom:4px}
+.meaning{font-size:15px;color:var(--ink-soft);margin:0 0 10px}
+.sentence{font-size:15px;color:var(--ink-soft);margin:10px 0 14px}
+.sentence em{color:var(--ink);font-style:normal;font-weight:700;background:var(--comb);padding:0 3px;border-radius:4px}
+.parsed{font-size:13px;color:var(--ink-soft);margin:6px 0 0}
+.parsed code{font-family:var(--latin);letter-spacing:.08em;background:var(--comb);padding:1px 5px;border-radius:5px}
+
+.score{font-family:var(--latin);font-weight:700;font-size:40px;line-height:1.1;margin:0}
+.score small{font-size:17px;color:var(--ink-soft);font-weight:400}
+ol.misses{margin:12px 0 0;padding-left:22px}
+ol.misses li{margin-bottom:7px;font-size:15px}
+ol.misses b{font-family:var(--latin);letter-spacing:.04em}
+ol.misses span{color:var(--ink-soft);font-size:13px}
+
+.hide{display:none}
+.note{font-size:13px;color:var(--ink-soft);margin-top:14px}
+#errbar{background:var(--clay);color:#fff;padding:10px 12px;border-radius:10px;font-size:13px;margin-bottom:12px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="errbar" class="hide"></div>
+
+  <div class="mast"><h1>Spelling Bee</h1><span>실전 · 말하기 버전</span></div>
+  <p class="tag">단어를 듣고 <b>단어 → 철자 → 단어</b> 순서로 말하면 음성을 인식해 채점합니다.</p>
+
+  <!-- SETUP -->
+  <section id="setup">
+    <div class="panel">
+      <h2>연습 범위</h2>
+      <div class="chips" id="rangeChips"></div>
+    </div>
+    <div class="panel">
+      <h2>문항 수</h2>
+      <div class="chips" id="sizeChips"></div>
+    </div>
+    <button class="btn primary wide" id="startBtn">시작하기</button>
+    <p class="note">마이크 권한을 허용해야 합니다. 크롬(안드로이드·PC) 또는 사파리(아이폰)에서 열어 주세요. 조용한 곳에서 또박또박, 철자는 한 글자씩 끊어서 말하면 인식률이 높습니다.</p>
+  </section>
+
+  <!-- QUIZ -->
+  <section id="quiz" class="hide">
+    <div class="meter"><i id="bar"></i></div>
+    <div class="count"><span id="pos"></span><span id="tally"></span></div>
+
+    <div class="panel">
+      <div class="hexwrap">
+        <button class="hexbtn" id="micBtn"><span class="ico">🎙</span><span id="micLabel">눌러서 말하기</span></button>
+      </div>
+      <p class="script">말하는 순서 — <b id="scriptEx">word, w-o-r-d, word</b></p>
+      <div class="btnrow" style="justify-content:center;margin-top:12px">
+        <button class="btn sm" id="playBtn">단어 다시 듣기</button>
+        <button class="btn sm" id="slowBtn">천천히</button>
+      </div>
+      <div class="btnrow" style="justify-content:center;margin-top:8px">
+        <button class="btn sm" id="defBtn">Definition, please</button>
+        <button class="btn sm" id="sentBtn">Use it in a sentence</button>
+      </div>
+      <p class="parsed" id="askInfo"></p>
+    </div>
+
+    <div class="panel" id="heardPanel">
+      <h2>들린 내용</h2>
+      <div class="heard" id="heard">마이크 버튼을 누르고 말하세요</div>
+      <p class="parsed hide" id="parsed"></p>
+    </div>
+
+    <div id="fbBox" class="panel hide">
+      <p class="verdict" id="verdict"></p>
+      <div class="spell" id="spell"></div>
+      <p class="meaning" id="meaning"></p>
+      <div class="btnrow">
+        <button class="btn sm" id="spellOutBtn">정답 철자 듣기</button>
+        <button class="btn sm" id="flipBtn"></button>
+      </div>
+      <p class="sentence" id="sentence"></p>
+      <p class="parsed" id="fbInfo"></p>
+      <button class="btn primary wide" id="nextBtn" style="margin-top:10px">다음 문제</button>
+    </div>
+
+    <button class="btn wide" id="quitBtn" style="margin-top:10px">그만하고 결과 보기</button>
+  </section>
+
+  <!-- RESULT -->
+  <section id="result" class="hide">
+    <div class="panel">
+      <p class="score" id="scoreLine"></p>
+      <p id="resultMsg" style="margin:6px 0 0;color:var(--ink-soft)"></p>
+    </div>
+    <div class="panel" id="missPanel">
+      <h2>틀린 단어</h2>
+      <ol class="misses" id="missList"></ol>
+    </div>
+    <button class="btn primary wide" id="retryBtn">틀린 것만 다시 하기</button>
+    <button class="btn wide" id="homeBtn" style="margin-top:8px">처음으로</button>
+  </section>
+</div>
+
+<script>
+const WORDS = [
+["ability","능력","That bird has an amazing ability to imitate speech."],
+["abstract","추상적인","The painting uses many abstract shapes."],
+["accent","억양, 말투","Students are exposed to many English accents at school."],
+["actually","사실은, 실제로","I thought it was far, but it was actually close."],
+["addition","덧셈, 추가","In math class, we learned how to do simple addition with large numbers."],
+["advantage","장점, 이점","Being tall is an advantage in basketball."],
+["alert","경계하는","The coach reminded the players to remain alert throughout the match."],
+["algae","해조류","We observed tiny algae under the microscope yesterday."],
+["algorithm","알고리즘","The computer follows an algorithm to solve the problem."],
+["ambitious","야망 있는, 열정적인","She is an ambitious student who works hard to reach her goals."],
+["amphibian","양서류","This rare amphibian was discovered deep in the Amazon rainforest."],
+["analyze","분석하다","The students will analyze the results of the experiment."],
+["ancestor","조상","My ancestor lived in this village many years ago."],
+["annoyed","짜증난","She wasn't annoyed by the noise because she was wearing headphones."],
+["anxious","걱정하는, 불안한","Feeling anxious can make it difficult to focus on simple tasks."],
+["approach","접근하다, 다가가다","The train is approaching the station."],
+["arctic","북극의","Polar bears live in the Arctic region."],
+["assure","장담하다, 확언하다","He assured his parents that he was studying hard."],
+["attitude","태도","A positive attitude helps you learn better."],
+["available","이용 가능한, 시간이 있는","The teacher is available after class to help you."],
+["average","평균","The average score on the test was 85."],
+["batter","타자","Each batter must decide quickly whether to swing."],
+["belief","믿음, 신념","A growth mindset is the belief that you can always learn and get better."],
+["benefit","혜택, 이점","One major benefit of living in a city is the convenient transport."],
+["blobfish","블롭피쉬 (심해 물고기)","The blobfish lives deep in the ocean."],
+["brilliant","훌륭한, 뛰어난","She had a brilliant idea for the school project."],
+["bronze","청동, 구리빛","The old mechanical clock is made of bronze."],
+["cautious","조심스러운, 신중한","My father is a very cautious driver, especially in the rain."],
+["century","세기, 100년","The castle was built more than a century ago."],
+["chorus","동시에 말하다","Everyone chorused in agreement, showing that the decision was widely supported."],
+["celebrate","축하하다","We will celebrate our team's victory."],
+["climate","기후","Scientists are studying how the Earth's climate is changing."],
+["coast","해안, 연안","Many boats float near the coast."],
+["collapse","붕괴하다","The roof is collapsing slowly under the weight of the snow."],
+["comedian","코미디언","The comedian made everyone laugh during the show."],
+["comfortable","편안한","The chair is very comfortable to sit on."],
+["communication","의사소통","The team had a hard time because there was not enough communication."],
+["community","공동체","Community meetings allow residents to share concerns."],
+["companion","동반자, 친구","The dog is a loyal companion."],
+["competitive","경쟁적인","His competitive nature sometimes causes stress."],
+["complaint","불평, 항의","The students had a complaint about the difficult homework."],
+["complex","복잡한","Although the problem seemed complex, the teacher explained it simply."],
+["complicated","복잡한","The instructions were complicated, so many users made the same mistake."],
+["concerned","걱정하는, 염려하는","Parents are concerned for their children's online safety."],
+["confidence","자신감","She gained more confidence after passing the exam."],
+["confused","혼란스러운","She felt confused by the sudden change in plans."],
+["connection","연결, 관계","There is a strong connection between practice and success."],
+["construct","건설하다","They are constructing a huge shopping mall near the station."],
+["context","맥락, 문맥","The word has different meanings depending on the context."],
+["continent","대륙","Asia is the largest continent in the world."],
+["continue","계속하다","Please continue reading the story."],
+["contribution","기여, 공헌","Her contribution helped the team win."],
+["controversial","논란이 많은","Is this topic too controversial to discuss here?"],
+["convincing","설득력 있는","The game creates convincing human behavior using artificial intelligence."],
+["creation","창조, 창작물","The robot was the student's amazing creation."],
+["creativity","창의성, 독창력","You must develop your creativity to become a successful designer."],
+["critical","비판적인","Have you ever received critical feedback on your writing?"],
+["currency","통화, 화폐","Digital currency is becoming more popular among young investors."],
+["damage","손상시키다","Several buildings were damaged by the explosion."],
+["defensive","방어적인","It is not helpful to be defensive when learning something new."],
+["delicate","섬세한, 연약한","This flower is very delicate, so be careful."],
+["deserve","~할 자격이 있다","They deserve to win this year."],
+["despite","~에도 불구하고","They enjoyed their hike despite the heavy rain and cold wind."],
+["developer","개발자","My brother wants to become a web developer at a tech company."],
+["device","장치, 기기","This device helps us measure the temperature."],
+["difficult","어려운","It was a difficult decision to make, but it was the right thing to do."],
+["dinosaur","공룡","Dinosaurs lived on Earth millions of years ago."],
+["direction","방향, 지시 사항","Read the directions carefully before you start the exam."],
+["disappear","사라지다","The rainbow slowly disappeared after the rain."],
+["discovery","발견","Traveling is a great way to make a new discovery about yourself."],
+["echo","메아리","When he shouted loudly, the echo returned a few seconds later."],
+["eclipse","일식, 월식","The moon covers the sun during a solar eclipse."],
+["ecosystem","생태계","Pollution seriously damages the balance of the ecosystem."],
+["engage","참여하다, 몰입시키다","She is engaged in a school science project."],
+["enormous","거대한, 엄청난","The elephant is an enormous animal."],
+["enough","충분한","There is enough water for everyone."],
+["environment","환경","We should protect the environment."],
+["episode","(드라마 등의) 한 회, 사건","I watched an interesting episode of the show yesterday."],
+["exactly","정확히","Can you tell me exactly what happened this morning?"],
+["except","~을 제외하고","Everyone came to the party except Tom."],
+["exchange","교환하다","Where can I exchange my Korean Won for US dollars?"],
+["excitement","흥분, 신남","The children shouted with excitement when the show started."],
+["experiment","실험","Did the experiment produce reliable and clear results?"],
+["expert","전문가","She is an expert in painting."],
+["extinct","멸종된, 사라진","Tigers are endangered, but they are not extinct yet."],
+["fantasy","판타지, 공상","This book tells a fantasy story about dragons and magic."],
+["flexible","유연한","We need a flexible approach to solve this complex problem."],
+["float","뜨다, 떠다니다","Wood can float on water."],
+["focused","집중한","It is hard to stay focused when there is so much noise in the office."],
+["forceful","강압적인","Why did he use such forceful language in the meeting?"],
+["foundation","토대, 기초","Check the foundation carefully before buying an old house."],
+["fret","조바심내다","There is no need to fret over small mistakes."],
+["generous","관대한, 후한","The company provides generous employee benefits."],
+["genre","장르","My favorite movie genre is comedy."],
+["grateful","감사하는","I am grateful for my friends and family."],
+["grip","꽉 붙잡음, 움켜쥠","He held on with a tight grip."],
+["groan","신음하다","He groaned when he realized how much work remained."],
+["harvest","수확하다","Machines are often used to harvest large fields efficiently."],
+["heartbeat","심장박동","She could feel her heartbeat increase during the final seconds of the race."],
+["height","높이","The height of the mountain is very impressive."],
+["hopeful","희망적인","I am hopeful about my test score."],
+["humble","겸손한","The athlete has always been humble about his achievements."],
+["hybrid","잡종, 교배종","This new fruit was created as a hybrid of an apple and a pear."],
+["ignore","무시하다","It is rude to ignore people during conversations."],
+["illusion","착각, 환상","The magician created the illusion that the coin disappeared."],
+["impatient","성급한, 참을성 없는","The audience grew impatient as the show started late."],
+["increase","증가하다","Why do populations increase in urban areas?"],
+["incredible","믿기 힘든, 아주 훌륭한","Seeing a thousand butterflies was incredible."],
+["indefinite","무기한의","The meeting was postponed for an indefinite time."],
+["inflation","인플레이션","Inflation makes food and other things more expensive."],
+["insecure","자신감 없는","Many teenagers feel insecure about their appearance."],
+["inspiring","영감을 주는","The teacher told an inspiring story about success."],
+["instead","대신에","It rained, so we played inside instead."],
+["inventor","발명가","What would you create if you were a talented inventor?"],
+["isolated","고립된, 외딴","He lives in an isolated farmhouse far from the city."],
+["karate","가라테","He wears a white uniform for karate."],
+["landscape","풍경, 경치","We took pictures of the beautiful landscape."],
+["larvae","유충","Scientists studied larvae to understand insect growth patterns."],
+["launch","출시하다","They decided not to launch the product due to safety concerns."],
+["listener","듣는 사람","The listener asked thoughtful questions afterward."],
+["locally","지역적으로","My mom likes to buy fresh vegetables that are grown locally."],
+["location","장소, 위치","The hotel's location is close to the beach."],
+["luckily","다행히도, 운좋게","Luckily, she found her lost wallet under the sofa."],
+["lyrics","가사","The lyrics match the song's emotional tone well."],
+["material","재료, 물질","We used paper and glue as materials for the project."],
+["mechanical","기계의, 기계적인","The robot has many mechanical parts."],
+["moment","순간, 잠깐","The easy math problem only takes a moment to solve."],
+["mumble","중얼거리다","Why do you always mumble when you are asked a difficult question?"],
+["nerve","신경","The dentist had to freeze the nerve in my tooth so I wouldn't feel pain."],
+["obvious","분명한","It was obvious that he studied hard."],
+["opinion","의견","Everyone shared their opinion in class."],
+["opportunity","기회","Do you have many opportunities to speak English at work?"],
+["opposite","반대의","Black is the opposite of white."],
+["option","선택, 선택지","There are many different options for your summer vacation."],
+["ordinary","보통의, 평범한","It was just an ordinary day until something strange happened."],
+["organic","유기농의","This farm only grows organic vegetables, the farmer said proudly."],
+["original","원래의, 독창적인","She wrote an original story for the class."],
+["overhear","우연히 듣다","She overheard that the shop is closing down next month."],
+["overjoyed","몹시 기쁜","I would be overjoyed if you could come to my wedding next year."],
+["overthink","지나치게 생각하다","She was overthinking the conversation she had with her boss."],
+["oxygen","산소","Open the window to let some fresh oxygen into the classroom."],
+["particular","특정한, 특별한","She likes this particular book very much."],
+["patience","인내심","You need patience to learn something new."],
+["pattern","유형, 패턴","Weather patterns have changed a lot in recent years."],
+["persuade","설득하다","He wants to persuade his dad to go camping."],
+["physical","신체적인","Do you think physical health is more important than mental health?"],
+["pitcher","투수","The pitcher threw a very fast ball that was difficult to hit."],
+["planet","행성","We must take care of our planet for future generations."],
+["pollute","오염시키다","We must try not to pollute our oceans."],
+["population","인구, 개체 수","The city has a large population of over ten million people."],
+["practical","실용적인, 현실적인","What is the most practical way to learn English?"],
+["predict","예측하다","Can you predict the weather for tomorrow?"],
+["pretend","가장하다, 척하다","Can you pretend to be my brother just for this one phone call?"],
+["previously","이전에, 미리","The hotel was previously a large private house."],
+["probably","아마도","If it doesn't rain, we will probably go to the park this weekend."],
+["process","과정, 절차","How long does the application process take for this visa?"],
+["protect","보호하다","It is our responsibility to protect endangered animals from extinction."],
+["recognize","알아보다, 인식하다","I did not recognize him at first."],
+["recording","녹화 자료","The teacher sent us a recording of the lesson."],
+["reflection","거울에 비친 모습","He is looking at his reflection and fixing his tie."],
+["region","지방, 지역","This region is famous for its beautiful mountains and clean air."],
+["relaxed","편안한","He felt relaxed after finishing the intense training."],
+["researcher","연구원, 조사자","If I were a researcher, I would spend all my time in the lab."],
+["respond","대답하다","Please respond to my email as soon as you read it."],
+["rhyme","운율, 라임","The poem has a fun rhyme."],
+["routine","일상, 일과","Brushing your teeth is part of your daily routine."],
+["secure","단단히 고정된","Make sure your seat belt is secure before the bus starts moving."],
+["shipwreck","난파선","Divers found a gold coin in the shipwreck."],
+["shiver","떨다","Even though it was summer, the cold water made him shiver."],
+["shutter","덧문","The shutter stayed open, so the room felt bright."],
+["sigh","한숨 쉬다","He sighed after the long day."],
+["situation","상황","We talked about the situation and tried to solve the problem."],
+["slightly","약간, 조금","The temperature dropped slightly as the sun went down."],
+["software","소프트웨어","Please install the antivirus software before surfing the internet."],
+["solution","해결책, 해답","We worked together to find a solution to the problem."],
+["species","(생물의) 종","Many species are disappearing because of climate change."],
+["sponge","스펀지","A sponge can hold more water than expected."],
+["stable","안정된","We hope the economy will remain stable this year."],
+["stationary","정지된","The car hit a stationary truck."],
+["struggle","애쓰다","The little bird struggled to fly against the strong wind."],
+["successful","성공적인","They feel proud after completing a successful campaign."],
+["surround","둘러싸다","The trees surround the house."],
+["sweaty","땀이 난","She felt uncomfortable because her hands became sweaty during the test."],
+["taxidermist","박제사","The taxidermist made the eagle look real."],
+["technique","기법, 기술","This modern technique is more efficient than the old one."],
+["thunderstorm","뇌우","We had to cancel our picnic because of a sudden thunderstorm."],
+["tracksuit","트레이닝복","Why are you wearing a tracksuit instead of your school uniform today?"],
+["transfer","이체하다","I transferred money to my friend."],
+["treadmill","러닝머신","Using a treadmill is not as interesting as running in a beautiful park."],
+["uncomfortable","불편한","Wearing the wrong shoes can make long walks uncomfortable."],
+["uninterested","관심 없는","No one was uninterested in the amazing solar eclipse."],
+["unique","독특한, 유일한","The company is creating a unique platform for young artists."],
+["valuable","가치 있는","Time is a very valuable thing."],
+["vanish","사라지다","Don't let your dreams vanish because of a small mistake."],
+["wealthy","부유한","Being wealthy doesn't always mean you are happy."],
+["whether","~인지 아닌지","I don't know whether it will rain today."],
+["wildlife","야생 동물","He spent his life photographing wildlife in Africa."],
+["window","창문","I closed the window because it was cold."],
+["without","~없이","It is not easy to stay healthy without eating enough vegetables."],
+["scientist","과학자","My dream is to become a scientist and discover a new planet."],
+["abbreviation","줄임말, 축약형","USA is an abbreviation for United States of America."],
+["accidentally","뜻하지 않게","I accidentally broke the glass."],
+["administration","행정, 관리","The school administration planned the event."],
+["aeronautics","항공학","He studies aeronautics to design airplanes."],
+["affordable","감당할 수 있는","We found an affordable hotel near the beach."],
+["anxiety","불안, 걱정","She felt anxiety before the big test."],
+["appreciate","감사하다","I really appreciate your help with my homework."],
+["archaeologist","고고학자","The archaeologist discovered ancient pottery buried deep underground."],
+["architect","건축가, 설계사","This house was built by a world-famous architect."],
+["assistant","조수, 보조원","The teacher's assistant helps students in class."],
+["attractive","매력적인","The colorful bird is very attractive."],
+["biologist","생물학자","The biologist spent years studying rare plants in the Amazon forest."],
+["campaign","캠페인을 벌이다","We should campaign for better working conditions in the factory."],
+["canyon","협곡","We visited a beautiful canyon during our trip."],
+["chemical","화학물질","We must wear safety glasses when we mix a chemical in the lab."],
+["choreography","안무","Learning choreography requires focus and memory."],
+["characteristic","특징, 특성","A long neck is a characteristic of a giraffe."],
+["circulation","순환, 유통","Exercise helps improve blood circulation."],
+["combination","조합, 결합","The combination of blue and yellow makes a beautiful green color."],
+["command","명령하다, 지휘하다","The teacher commanded the students to be quiet."],
+["competition","경쟁, 대회","She practiced every day for the singing competition."],
+["complete","완료하다, 완전한","You must complete the application form before the deadline."],
+["concentrate","집중하다","Can you concentrate better after taking a short break?"],
+["concrete","콘크리트","The bridge is made of strong concrete."],
+["consideration","고려, 배려","The teacher took our ideas into consideration before making a decision."],
+["constant","끊임없는","The constant noise from the construction site was very annoying."],
+["convenient","편리한","Online shopping is very convenient."],
+["decision","결정","It was a difficult decision to make."],
+["deforestation","삼림파괴","Deforestation is one of the main causes of habitat loss for animals."],
+["determination","결정","Without determination, you cannot achieve your big goals."],
+["disappointment","실망","The canceled trip was a big disappointment for the kids."],
+["doubt","의심하다","Never doubt yourself even when things get difficult."],
+["earthquake","지진","The earthquake shook the building for a few seconds."],
+["electricity","전기","We can save electricity by turning off the lights when we leave the room."],
+["embarrassed","당황스러운","He felt embarrassed when he forgot his lines."],
+["embarrassment","당황스러움","She felt deep embarrassment after making a mistake."],
+["emergency","비상 상황","Call 119 in case of an emergency."],
+["environmental","환경의","The school started an environmental club to plant more trees."],
+["equipment","장비, 용품","The team needs some basic equipment like a ball and a net."],
+["especially","특히","I like all fruit, especially strawberries."],
+["eventually","결국","After many tries, she eventually solved the puzzle."],
+["exercise","운동, 연습","Doing regular exercise can help reduce stress and stay healthy."],
+["exhausted","기진맥진한","He is constantly feeling exhausted due to his busy schedule."],
+["expedition","탐험, 탐사","The team went on an expedition to study the jungle."],
+["familiar","익숙한, 친숙한","The melody of the song sounded very familiar to me."],
+["fascinated","매료된, 마음을 빼앗긴","The students were fascinated by the science experiment."],
+["frightening","무서운, 겁나는","The loud noise was very frightening."],
+["frustrated","좌절한, 답답한","She felt frustrated when the game would not work."],
+["further","더 이상의","If you need further information, please visit our website."],
+["generate","생성하다, 만들어내다","The old engine does not generate enough power to move the machine."],
+["gesture","몸짓","He waved his hand as a friendly gesture."],
+["growth","성장","Plants need sunlight and water for healthy growth."],
+["imagination","상상력","The story uses a lot of imagination."],
+["impossible","불가능한","It is almost impossible to finish this project in just one hour."],
+["improvement","향상, 개선","Your English writing shows a big improvement compared to last month."],
+["incredibly","믿을 수 없을 정도로","That was incredibly brave of you."],
+["independent","독립적인","She is proud to be an independent learner."],
+["instructions","설명, 지시 사항","You must follow the instructions carefully to assemble the toy."],
+["intelligent","총명한, 똑똑한","Dolphins are very intelligent animals."],
+["interrupt","방해하다, 중단시키다","I'm sorry to interrupt you."],
+["interviewer","인터뷰 진행자","The interviewer recorded the conversation for later review."],
+["investigate","조사하다","Scientists investigate new discoveries."],
+["journey","여정, 여행","They prepared all the necessary supplies for their long journey."],
+["laboratory","실험실","The students did a science experiment in the laboratory."],
+["linguist","언어학자","She is a linguist who studies how children learn new languages."],
+["loyalty","충성심, 충실함","The dog showed great loyalty to its owner."],
+["magnificent","장엄한, 훌륭한","The view from the top of the palace was absolutely magnificent."],
+["mammoth","매머드","The woolly mammoth lived during the Ice Age."],
+["marine","바다의, 해양의","Dolphins and whales are famous marine animals that live in the ocean."],
+["marvelous","놀라운, 경이로운","The king gave a marvelous speech."],
+["mechanism","기계장치","The clock has a small mechanism inside."],
+["mosquito","모기","A mosquito bit my arm while I was sleeping."],
+["neighbor","이웃","Our neighbor gave us some fresh fruit."],
+["personality","성격, 개성","She has a friendly personality."],
+["persuasion","설득","Her persuasion helped me make a good decision."],
+["philosopher","철학자","The philosopher asked many questions about life."],
+["pollinate","수분하다","Without insects, many plants cannot pollinate and grow seeds."],
+["precise","정확한","The scientist needs precise measurements."],
+["prediction","예측, 예상","His weather prediction was correct."],
+["presentation","발표","She gave a great presentation in class."],
+["professional","전문적인","She is a professional dancer."],
+["purchase","구매하다","I want to purchase a new computer."],
+["quality","품질","The company is known for producing high-quality electronic goods."],
+["receive","받다","I was happy to receive your letter."],
+["recommend","추천하다","I recommend this book because it is very fun."],
+["rectangular","직사각형의","We need two rectangular pieces of wood for this project."],
+["relationship","관계","A good relationship makes teamwork easier."],
+["rescue","구출하다","The firefighter rescued the cat from the tree."],
+["roboticist","로봇 기술자","The roboticist worked all night to fix the robot's broken arm."],
+["specific","구체적인","Please give me specific directions so I can find your house easily."],
+["stubborn","고집 센","My cat is very stubborn and won't come when I call."],
+["syllable","음절","The word 'apple' has two syllables."],
+["technology","기술","Modern technology has changed the way we communicate with people."],
+["temperature","온도, 기온","When you have a fever, your body temperature goes up higher than normal."],
+["theory","이론, 학설","His theory is interesting, but there is no proof to support it yet."],
+["traditional","전통적인","We always wear traditional clothes on New Year's Day."],
+["underneath","아래에, 밑에","The cat is hiding underneath the table."],
+["vertical","수직의, 세로의","The skyscraper had long vertical lines that made it look even taller."],
+["analysis","분석","After careful analysis, they found the cause of the problem."],
+["Mediterranean","지중해","The weather is warm and sunny in the Mediterranean region."]
+];
+
+window.onerror=function(m,s,l){var b=document.getElementById('errbar');if(b){b.className='';b.textContent='오류: '+m+' (줄 '+l+')'}};
+const el=id=>document.getElementById(id);
+const TTS=('speechSynthesis' in window)&&('SpeechSynthesisUtterance' in window);
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+
+/* ---------- speaking ---------- */
+let voice=null;
+function pickVoice(){ if(!TTS)return; const v=speechSynthesis.getVoices();
+  voice=v.find(x=>/en[-_]US/i.test(x.lang)&&/samantha|google|zira|female/i.test(x.name))||v.find(x=>/en[-_]US/i.test(x.lang))||v.find(x=>/^en/i.test(x.lang))||null; }
+if(TTS){pickVoice();speechSynthesis.onvoiceschanged=pickVoice}
+function say(t,rate){return new Promise(res=>{ if(!TTS){res();return}
+  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='en-US';u.rate=rate||.85;if(voice)u.voice=voice;u.onend=res;u.onerror=res;speechSynthesis.speak(u)}catch(e){res()} })}
+function sayWord(r){return say(cur().w,r||.8)}
+function spellOut(){return say(cur().w.split('').join(', '),.65)}
+
+/* ---------- letter-name parsing ---------- */
+const LETTER={ay:'a',eh:'a',bee:'b',be:'b',b:'b',see:'c',sea:'c',cee:'c',si:'c',dee:'d',de:'d',ee:'e',ea:'e',ef:'f',eff:'f',gee:'g',ge:'g',jee:'g',
+aitch:'h',haitch:'h',eigh:'h',eye:'i',aye:'i',ai:'i',jay:'j',jai:'j',kay:'k',cay:'k',ka:'k',el:'l',ell:'l',le:'l',em:'m',emm:'m',en:'n',enn:'n',
+oh:'o',owe:'o',ow:'o',pee:'p',pea:'p',pe:'p',cue:'q',queue:'q',kyu:'q',ar:'r',are:'r',arr:'r',er:'r',es:'s',ess:'s',esse:'s',tee:'t',tea:'t',te:'t',
+you:'u',yu:'u',ewe:'u',ue:'u',vee:'v',ve:'v',vi:'v',ex:'x',eks:'x',ecks:'x',why:'y',wy:'y',wai:'y',zee:'z',zed:'z',zi:'z',zeta:'z'};
+const FILLER=new Set(['is','spelled','spell','spelling','the','word','a','an','and','it','its','uh','um','please','capital','big','small']);
+function esc(s){return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}
+
+function parse(transcript,word){
+  let t=' '+transcript.toLowerCase().replace(/[^a-z\s'-]/g,' ')+' ';
+  t=t.replace(/-/g,' ');
+  const wre=new RegExp('\\b'+esc(word.toLowerCase())+'\\b','g');
+  const occ=(t.match(wre)||[]).length;
+  t=t.replace(wre,' ');
+  t=t.replace(/\bdouble\s+(u|you|yu|ew)\b/g,' w ');
+  const toks=t.split(/\s+/).filter(Boolean);
+  let out='';
+  for(const tk of toks){
+    if(LETTER[tk]!==undefined){out+=LETTER[tk];continue}
+    if(tk.length===1&&/[a-z]/.test(tk)){out+=tk;continue}
+    if(FILLER.has(tk))continue;
+    out+=tk;                       // merged chunk like "ppl" or a misheard word
+  }
+  return {letters:out,occ:occ};
+}
+function grade(texts,word){
+  const w=word.toLowerCase(); let best={letters:'',occ:0};
+  for(const t of texts){
+    const p=parse(t,word);
+    if(p.letters.length>best.letters.length||!best.letters) best=p;
+    if(p.letters.indexOf(w)>=0) return {ok:true,p:p};
+    if(p.letters.length===0&&p.occ>=2) return {ok:true,p:p};   // spelling merged into the word
+  }
+  return {ok:false,p:best};
+}
+
+/* ---------- listening ---------- */
+let rec=null,listening=false,texts=[],liveText='',autoStop=null;
+function setMic(on){
+  listening=on;
+  el('micBtn').classList.toggle('live',on);
+  el('micLabel').textContent=on?'말하는 중 · 눌러서 종료':'눌러서 말하기';
+}
+function startListen(){
+  if(!SR){ warn('이 브라우저는 음성 인식을 지원하지 않습니다. 크롬이나 사파리에서 열어 주세요.'); return }
+  if(TTS) speechSynthesis.cancel();
+  texts=[];liveText='';
+  el('heard').textContent='듣는 중…';el('heard').classList.remove('has');
+  el('parsed').classList.add('hide');
+  try{
+    rec=new SR();
+  }catch(e){ warn('음성 인식을 시작할 수 없습니다: '+e.message); return }
+  rec.lang='en-US'; rec.continuous=true; rec.interimResults=true; rec.maxAlternatives=5;
+  rec.onresult=e=>{
+    let interim='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const r=e.results[i];
+      if(r.isFinal){ liveText+=' '+r[0].transcript;
+        for(let k=0;k<r.length;k++) texts.push(r[k].transcript);
+      } else interim+=r[0].transcript;
+    }
+    const shown=(liveText+' '+interim).trim();
+    el('heard').textContent=shown||'듣는 중…';
+    if(shown) el('heard').classList.add('has');
+  };
+  rec.onerror=e=>{
+    if(e.error==='not-allowed'||e.error==='service-not-allowed') warn('마이크 권한이 거부되었습니다. 브라우저 주소창의 자물쇠 아이콘에서 마이크를 허용해 주세요.');
+    else if(e.error==='no-speech') el('heard').textContent='소리가 들리지 않았어요. 다시 눌러서 말해 보세요.';
+    else warn('음성 인식 오류: '+e.error);
+  };
+  rec.onend=()=>{ setMic(false); clearTimeout(autoStop); finishTurn(); };
+  try{ rec.start(); setMic(true); }catch(e){ warn('마이크를 열 수 없습니다: '+e.message); return }
+  clearTimeout(autoStop); autoStop=setTimeout(stopListen,15000);
+}
+function stopListen(){ if(rec&&listening){ try{rec.stop()}catch(e){ setMic(false) } } }
+function warn(msg){ const b=el('errbar'); b.className=''; b.textContent=msg; }
+
+/* ---------- state ---------- */
+const RANGES=[['1–50',1,50],['51–100',51,100],['101–150',101,150],['151–200',151,200],
+  ['201–250',201,250],['251–300',251,300],['기본 1–200',1,200],['챌린지 201–300',201,300],['전체 1–300',1,300]];
+const SIZES=[['10문제',10],['20문제',20],['50문제',50],['전부',0]];
+let rangeIdx=0,sizeIdx=0,queue=[],qi=0,right=0,misses=[],done=false,lastOk=false;
+const cur=()=>queue[qi];
+
+function chips(){
+  el('rangeChips').innerHTML=RANGES.map((r,i)=>`<button class="chip" data-i="${i}" aria-pressed="${i===rangeIdx}">${r[0]}</button>`).join('');
+  el('sizeChips').innerHTML=SIZES.map((s,i)=>`<button class="chip" data-i="${i}" aria-pressed="${i===sizeIdx}">${s[0]}</button>`).join('');
+}
+chips();
+el('rangeChips').onclick=e=>{const b=e.target.closest('.chip');if(b){rangeIdx=+b.dataset.i;chips()}};
+el('sizeChips').onclick=e=>{const b=e.target.closest('.chip');if(b){sizeIdx=+b.dataset.i;chips()}};
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+const item=i=>({n:i+1,w:WORDS[i][0],m:WORDS[i][1],s:WORDS[i][2]});
+
+function run(items){
+  queue=items;qi=0;right=0;misses=[];
+  el('setup').classList.add('hide');el('result').classList.add('hide');el('quiz').classList.remove('hide');
+  ask();
+}
+el('startBtn').onclick=()=>{
+  if(TTS){try{speechSynthesis.resume();speechSynthesis.speak(new SpeechSynthesisUtterance(' '))}catch(e){}}
+  if(!SR) warn('이 브라우저는 음성 인식을 지원하지 않습니다. 듣기와 정답 확인은 되지만 자동 채점은 수동 버튼으로 해 주세요.');
+  const [,a,b]=RANGES[rangeIdx];
+  let pool=[];for(let i=a-1;i<b;i++)pool.push(item(i));
+  shuffle(pool);
+  const n=SIZES[sizeIdx][1]; if(n>0)pool=pool.slice(0,n);
+  run(pool);
+};
+
+function ask(){
+  done=false;
+  el('fbBox').classList.add('hide');el('heardPanel').classList.remove('hide');
+  el('heard').textContent='마이크 버튼을 누르고 말하세요';el('heard').classList.remove('has');
+  el('parsed').classList.add('hide');el('askInfo').textContent='';
+  el('pos').textContent=`${qi+1} / ${queue.length}번째`;
+  el('tally').textContent=`맞은 개수 ${right}`;
+  el('bar').style.width=(qi/queue.length*100)+'%';
+  const w=cur().w;
+  el('scriptEx').textContent=`${w.toLowerCase()}, ${w.toLowerCase().split('').join('-')}, ${w.toLowerCase()}`;
+  el('scriptEx').style.filter='blur(5px)';
+  sayWord();
+}
+
+function finishTurn(){
+  if(done) return;
+  if(!texts.length){ el('heard').textContent='인식된 말이 없어요. 마이크를 다시 눌러 주세요.'; return }
+  done=true;
+  const g=grade(texts,cur().w);
+  lastOk=g.ok;
+  if(g.ok) right++; else misses.push({...cur(),heard:liveText.trim()});
+  show(g);
+}
+
+function show(g){
+  el('heardPanel').classList.add('hide');
+  el('fbBox').classList.remove('hide');
+  el('scriptEx').style.filter='none';
+  const v=el('verdict');
+  v.textContent=lastOk?'맞았어요':'다시 볼 단어';
+  v.className='verdict '+(lastOk?'ok':'no');
+  el('spell').textContent=cur().w.split('').join(' ');
+  el('meaning').textContent=cur().m;
+  const re=new RegExp('\\b'+esc(cur().w)+'\\w*','i');
+  el('sentence').innerHTML=cur().s.replace(re,m=>`<em>${m}</em>`);
+  el('flipBtn').textContent=lastOk?'아니요, 틀렸어요':'아니요, 맞았어요';
+  el('tally').textContent=`맞은 개수 ${right}`;
+  el('fbInfo').innerHTML=`들린 말: ${liveText.trim().replace(/</g,'&lt;')||'—'}<br>철자로 읽은 것: <code>${(g.p.letters||'—')}</code>`;
+}
+
+el('flipBtn').onclick=()=>{
+  if(lastOk){ right--; misses.push({...cur(),heard:liveText.trim()}); lastOk=false; }
+  else { right++; const i=misses.findIndex(m=>m.n===cur().n); if(i>=0)misses.splice(i,1); lastOk=true; }
+  const v=el('verdict'); v.textContent=lastOk?'맞음으로 고쳤어요':'틀림으로 고쳤어요';
+  v.className='verdict '+(lastOk?'ok':'no');
+  el('flipBtn').textContent=lastOk?'아니요, 틀렸어요':'아니요, 맞았어요';
+  el('tally').textContent=`맞은 개수 ${right}`;
+};
+
+function next(){ qi++; if(qi>=queue.length) finish(); else ask(); }
+
+function finish(){
+  stopListen();
+  el('quiz').classList.add('hide');el('result').classList.remove('hide');
+  const n=qi||queue.length;
+  el('bar').style.width='100%';
+  el('scoreLine').innerHTML=`${right} <small>/ ${n} 개 맞음</small>`;
+  const p=n?right/n:0;
+  el('resultMsg').textContent=p===1?'전부 맞았어요. 다음 범위로 넘어가도 좋아요.'
+    :p>=.8?'거의 다 왔어요. 틀린 것만 한 번 더 말해 보세요.'
+    :'틀린 단어는 철자를 천천히 소리 내어 세 번 말한 뒤 다시 도전해 보세요.';
+  if(misses.length){
+    el('missPanel').classList.remove('hide');el('retryBtn').classList.remove('hide');
+    el('missList').innerHTML=misses.map(m=>`<li><b>${m.w.split('').join(' ')}</b> <span>${m.m}</span><br><span>들린 말: ${(m.heard||'—').replace(/</g,'&lt;')}</span></li>`).join('');
+  }else{ el('missPanel').classList.add('hide');el('retryBtn').classList.add('hide') }
+}
+
+el('micBtn').onclick=()=>{ if(listening) stopListen(); else startListen(); };
+el('playBtn').onclick=()=>sayWord();
+el('slowBtn').onclick=()=>sayWord(.5);
+el('defBtn').onclick=()=>{ el('askInfo').textContent='뜻 — '+cur().m };
+el('sentBtn').onclick=()=>say(cur().s,.85);
+el('spellOutBtn').onclick=spellOut;
+el('nextBtn').onclick=next;
+el('quitBtn').onclick=finish;
+el('retryBtn').onclick=()=>run(shuffle(misses.map(m=>item(m.n-1))));
+el('homeBtn').onclick=()=>{el('result').classList.add('hide');el('setup').classList.remove('hide')};
+</script>
+</body>
+</html>
