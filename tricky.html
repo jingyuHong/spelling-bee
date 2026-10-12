@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Spelling Bee 주의 단어</title>
+<style>
+:root{
+  --ink:#241A10; --ink-soft:#6B5843;
+  --honey:#F5B429; --honey-dk:#B36A05; --comb:#FDEFC9;
+  --bg:#FFF9EC; --moss:#2F7D5D; --clay:#B3392C; --line:#E7D5AC;
+  --ui:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif;
+  --latin:"Verdana","Trebuchet MS","DejaVu Sans",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg);
+  background-image:radial-gradient(circle at 12% 8%,rgba(245,180,41,.16),transparent 42%),
+                   radial-gradient(circle at 88% 92%,rgba(245,180,41,.12),transparent 46%);
+  color:var(--ink);font-family:var(--ui);line-height:1.6;-webkit-text-size-adjust:100%;
+}
+.wrap{max-width:520px;margin:0 auto;padding:22px 18px 60px}
+.mast{display:flex;align-items:baseline;gap:10px;margin-bottom:6px}
+.mast h1{font-family:var(--latin);font-weight:700;font-size:24px;margin:0}
+.mast span{font-size:13px;color:var(--ink-soft)}
+.tag{font-size:13px;color:var(--ink-soft);margin:0 0 16px}
+
+.panel{background:#FFFDF6;border:1.5px solid var(--line);border-radius:18px;padding:18px 16px;margin-bottom:14px}
+.panel h2{font-size:14px;margin:0 0 10px;font-weight:400;color:var(--ink-soft)}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{font-family:inherit;font-size:14px;padding:8px 13px;border-radius:999px;border:1.5px solid var(--line);background:#fff;color:var(--ink);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--honey);border-color:var(--honey-dk);font-weight:700}
+.btn{font-family:inherit;font-size:15px;padding:11px 16px;border-radius:12px;border:1.5px solid var(--line);background:#fff;color:var(--ink);cursor:pointer}
+.btn.primary{background:var(--ink);color:#FFF3D6;border-color:var(--ink);font-weight:700}
+.btn.wide{width:100%;font-size:17px;padding:14px}
+.btn.sm{font-size:14px;padding:9px 13px}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap}
+.chip:focus-visible,.btn:focus-visible,.hexbtn:focus-visible{outline:3px solid var(--honey-dk);outline-offset:2px}
+
+.meter{height:7px;background:var(--comb);border-radius:99px;overflow:hidden;margin-bottom:6px}
+.meter i{display:block;height:100%;background:var(--honey-dk);width:0;transition:width .25s}
+.count{display:flex;justify-content:space-between;font-size:13px;color:var(--ink-soft);margin-bottom:16px}
+
+.hexwrap{display:flex;justify-content:center;margin:4px 0 12px}
+.hexbtn{width:180px;height:158px;border:0;padding:0;cursor:pointer;background:var(--honey);
+  clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  color:#3A2A0C;font-family:var(--ui);font-weight:700;font-size:15px}
+.hexbtn .ico{font-size:40px;line-height:1}
+.hexbtn.live{background:var(--clay);color:#fff;animation:pulse 1.1s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.62}}
+
+.script{background:var(--comb);border-radius:12px;padding:10px 12px;font-size:14px;color:#5A4420;text-align:center}
+.script b{font-family:var(--latin);letter-spacing:.08em}
+
+.heard{min-height:46px;background:#fff;border:1.5px dashed var(--line);border-radius:12px;padding:10px 12px;font-family:var(--latin);font-size:15px;color:var(--ink-soft);word-break:break-word}
+.heard.has{color:var(--ink)}
+
+.verdict{font-family:var(--latin);font-weight:700;font-size:20px;margin:0 0 8px}
+.verdict.ok{color:var(--moss)} .verdict.no{color:var(--clay)}
+.spell{font-family:var(--latin);font-weight:700;font-size:26px;letter-spacing:.14em;word-break:break-all;margin-bottom:4px}
+.meaning{font-size:15px;color:var(--ink-soft);margin:0 0 10px}
+.tip{font-size:15px;background:var(--comb);border-left:4px solid var(--honey-dk);border-radius:0 10px 10px 0;padding:10px 12px;margin:12px 0 0;color:#5A4420}
+.tip b{font-family:var(--latin);letter-spacing:.04em}
+.catline{font-size:13px;color:var(--ink-soft);margin:0 0 10px}
+ol.misses i{display:block;font-style:normal;color:#5A4420;font-size:13px;margin-top:2px}
+.sentence{font-size:15px;color:var(--ink-soft);margin:10px 0 14px}
+.sentence em{color:var(--ink);font-style:normal;font-weight:700;background:var(--comb);padding:0 3px;border-radius:4px}
+.parsed{font-size:13px;color:var(--ink-soft);margin:6px 0 0}
+.parsed code{font-family:var(--latin);letter-spacing:.08em;background:var(--comb);padding:1px 5px;border-radius:5px}
+
+.score{font-family:var(--latin);font-weight:700;font-size:40px;line-height:1.1;margin:0}
+.score small{font-size:17px;color:var(--ink-soft);font-weight:400}
+ol.misses{margin:12px 0 0;padding-left:22px}
+ol.misses li{margin-bottom:7px;font-size:15px}
+ol.misses b{font-family:var(--latin);letter-spacing:.04em}
+ol.misses span{color:var(--ink-soft);font-size:13px}
+
+.hide{display:none}
+.note{font-size:13px;color:var(--ink-soft);margin-top:14px}
+#errbar{background:var(--clay);color:#fff;padding:10px 12px;border-radius:10px;font-size:13px;margin-bottom:12px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="errbar" class="hide"></div>
+
+  <div class="mast"><h1>Spelling Bee</h1><span>주의 단어 · 말하기</span></div>
+  <p class="tag">5학년 300단어 중 틀리기 쉬운 165개만 유형별로 모았습니다. 단어를 듣고 <b>단어 → 철자 → 단어</b> 순서로 말하세요.</p>
+
+  <!-- SETUP -->
+  <section id="setup">
+    <div class="panel">
+      <h2>어떤 유형을 연습할까요</h2>
+      <div class="chips" id="rangeChips"></div>
+    </div>
+    <div class="panel">
+      <h2>문항 수</h2>
+      <div class="chips" id="sizeChips"></div>
+    </div>
+    <button class="btn primary wide" id="startBtn">시작하기</button>
+    <p class="note">마이크 권한을 허용해야 합니다. 크롬(안드로이드·PC) 또는 사파리(아이폰)에서 열어 주세요. 조용한 곳에서 또박또박, 철자는 한 글자씩 끊어서 말하면 인식률이 높습니다.</p>
+  </section>
+
+  <!-- QUIZ -->
+  <section id="quiz" class="hide">
+    <div class="meter"><i id="bar"></i></div>
+    <div class="count"><span id="pos"></span><span id="tally"></span></div>
+
+    <div class="panel">
+      <div class="hexwrap">
+        <button class="hexbtn" id="micBtn"><span class="ico">🎙</span><span id="micLabel">눌러서 말하기</span></button>
+      </div>
+      <p class="script">말하는 순서 — <b id="scriptEx">word, w-o-r-d, word</b></p>
+      <div class="btnrow" style="justify-content:center;margin-top:12px">
+        <button class="btn sm" id="playBtn">단어 다시 듣기</button>
+        <button class="btn sm" id="slowBtn">천천히</button>
+      </div>
+      <div class="btnrow" style="justify-content:center;margin-top:8px">
+        <button class="btn sm" id="defBtn">Definition, please</button>
+        <button class="btn sm" id="sentBtn">Use it in a sentence</button>
+      </div>
+      <p class="parsed" id="askInfo"></p>
+    </div>
+
+    <div class="panel" id="heardPanel">
+      <div class="heard" id="heard">마이크 버튼을 누르고 또박또박 말하세요</div>
+    </div>
+
+    <div id="fbBox" class="panel hide">
+      <p class="verdict" id="verdict"></p>
+      <div class="spell" id="spell"></div>
+      <p class="meaning" id="meaning"></p>
+      <div class="btnrow">
+        <button class="btn sm" id="spellOutBtn">정답 철자 듣기</button>
+        <button class="btn sm" id="flipBtn"></button>
+      </div>
+      <p class="tip" id="tip"></p>
+      <p class="sentence" id="sentence"></p>
+      <p class="parsed" id="fbInfo"></p>
+      <button class="btn primary wide" id="nextBtn" style="margin-top:10px">다음 문제</button>
+    </div>
+
+    <button class="btn wide" id="quitBtn" style="margin-top:10px">그만하고 결과 보기</button>
+  </section>
+
+  <!-- RESULT -->
+  <section id="result" class="hide">
+    <div class="panel">
+      <p class="score" id="scoreLine"></p>
+      <p id="resultMsg" style="margin:6px 0 0;color:var(--ink-soft)"></p>
+    </div>
+    <div class="panel" id="missPanel">
+      <h2>틀린 단어</h2>
+      <ol class="misses" id="missList"></ol>
+    </div>
+    <button class="btn primary wide" id="retryBtn">틀린 것만 다시 하기</button>
+    <button class="btn wide" id="homeBtn" style="margin-top:8px">처음으로</button>
+  </section>
+</div>
+
+<script>
+const WORDS = [
+["annoyed", "짜증난", "She wasn't annoyed by the noise because she was wearing headphones.", "ed", "annoy 뒤에 ed만 붙임 · y를 i로 바꾸지 않음"],
+["complicated", "복잡한", "The instructions were complicated, so many users made the same mistake.", "ed", "complicate 의 e를 빼고 ed"],
+["concerned", "걱정하는, 염려하는", "Parents are concerned for their children's online safety.", "ed", "끝이 -nd 가 아니라 -ned"],
+["confused", "혼란스러운", "She felt confused by the sudden change in plans.", "ed", "confuse 의 e 하나만 남기고 d"],
+["embarrassed", "당황스러운", "He felt embarrassed when he forgot his lines.", "ed", "r 둘 s 둘 + ed · 가장 많이 틀리는 단어"],
+["exhausted", "기진맥진한", "He is constantly feeling exhausted due to his busy schedule.", "ed", "ex 다음 h 가 숨어 있음"],
+["fascinated", "매료된, 마음을 빼앗긴", "The students were fascinated by the science experiment.", "ed", "s 다음 c 가 소리 없이 들어감"],
+["focused", "집중한", "It is hard to stay focused when there is so much noise in the office.", "ed", "s 는 하나 (focussed 아님)"],
+["frustrated", "좌절한, 답답한", "She felt frustrated when the game would not work.", "ed", "frustrate 의 e 를 빼고 ed"],
+["isolated", "고립된, 외딴", "He lives in an isolated farmhouse far from the city.", "ed", "isolate 의 e 를 빼고 ed"],
+["overjoyed", "몹시 기쁜", "I would be overjoyed if you could come to my wedding next year.", "ed", "joy + ed · y 가 그대로 남음"],
+["relaxed", "편안한", "He felt relaxed after finishing the intense training.", "ed", "x 다음 바로 ed"],
+["uninterested", "관심 없는", "No one was uninterested in the amazing solar eclipse.", "ed", "un + interest + ed"],
+["accidentally", "뜻하지 않게", "I accidentally broke the glass.", "dbl", "c 둘, l 둘 · accident + al + ly"],
+["disappear", "사라지다", "The rainbow slowly disappeared after the rain.", "dbl", "s 는 하나, p 는 둘"],
+["disappointment", "실망", "The canceled trip was a big disappointment for the kids.", "dbl", "s 는 하나, p 는 둘"],
+["recommend", "추천하다", "I recommend this book because it is very fun.", "dbl", "c 는 하나, m 은 둘"],
+["successful", "성공적인", "They feel proud after completing a successful campaign.", "dbl", "c 둘 s 둘 · 그런데 l 은 하나"],
+["embarrassment", "당황스러움", "She felt deep embarrassment after making a mistake.", "dbl", "r 둘, s 둘"],
+["opportunity", "기회", "Do you have many opportunities to speak English at work?", "dbl", "p 가 둘"],
+["opposite", "반대의", "Black is the opposite of white.", "dbl", "p 가 둘"],
+["difficult", "어려운", "It was a difficult decision to make, but it was the right thing to do.", "dbl", "f 가 둘"],
+["interrupt", "방해하다, 중단시키다", "I'm sorry to interrupt you.", "dbl", "r 이 둘"],
+["syllable", "음절", "The word 'apple' has two syllables.", "dbl", "l 이 둘 · -able 이 아니라 -ble"],
+["stubborn", "고집 센", "My cat is very stubborn and won't come when I call.", "dbl", "b 가 둘"],
+["command", "명령하다, 지휘하다", "The teacher commanded the students to be quiet.", "dbl", "m 이 둘"],
+["assistant", "조수, 보조원", "The teacher's assistant helps students in class.", "dbl", "s 둘 · 끝은 -ant"],
+["currency", "통화, 화폐", "Digital currency is becoming more popular among young investors.", "dbl", "r 이 둘"],
+["communication", "의사소통", "The team had a hard time because there was not enough communication.", "dbl", "m 이 둘"],
+["collapse", "붕괴하다", "The roof is collapsing slowly under the weight of the snow.", "dbl", "l 이 둘"],
+["brilliant", "훌륭한, 뛰어난", "She had a brilliant idea for the school project.", "dbl", "l 이 둘 · 끝은 -ant"],
+["surround", "둘러싸다", "The trees surround the house.", "dbl", "r 이 둘"],
+["struggle", "애쓰다", "The little bird struggled to fly against the strong wind.", "dbl", "g 가 둘"],
+["pollute", "오염시키다", "We must try not to pollute our oceans.", "dbl", "l 이 둘"],
+["pollinate", "수분하다", "Without insects, many plants cannot pollinate and grow seeds.", "dbl", "l 이 둘"],
+["abbreviation", "줄임말, 축약형", "USA is an abbreviation for United States of America.", "dbl", "b 가 둘"],
+["appreciate", "감사하다", "I really appreciate your help with my homework.", "dbl", "p 가 둘 · -ciate 로 끝남"],
+["affordable", "감당할 수 있는", "We found an affordable hotel near the beach.", "dbl", "f 가 둘"],
+["intelligent", "총명한, 똑똑한", "Dolphins are very intelligent animals.", "dbl", "l 이 둘 · 끝은 -ent"],
+["impossible", "불가능한", "It is almost impossible to finish this project in just one hour.", "dbl", "s 가 둘 · 끝은 -ible"],
+["professional", "전문적인", "She is a professional dancer.", "dbl", "s 가 둘 · f 는 하나"],
+["Mediterranean", "지중해", "The weather is warm and sunny in the Mediterranean region.", "dbl", "r 이 둘 · 대문자로 시작"],
+["mammoth", "매머드", "The woolly mammoth lived during the Ice Age.", "dbl", "m 이 둘 · 끝은 th"],
+["especially", "특히", "I like all fruit, especially strawberries.", "dbl", "c 뒤에 i · l 이 둘"],
+["eventually", "결국", "After many tries, she eventually solved the puzzle.", "dbl", "l 이 둘"],
+["treadmill", "러닝머신", "Using a treadmill is not as interesting as running in a beautiful park.", "dbl", "l 이 둘 · tread 는 ea"],
+["doubt", "의심하다", "Never doubt yourself even when things get difficult.", "silent", "b 가 소리 없이 들어감"],
+["campaign", "캠페인을 벌이다", "We should campaign for better working conditions in the factory.", "silent", "g 가 소리 없이 들어감"],
+["recognize", "알아보다, 인식하다", "I did not recognize him at first.", "silent", "co 다음 g 가 숨어 있음"],
+["environment", "환경", "We should protect the environment.", "silent", "n 이 두 번 (-ron-ment)"],
+["environmental", "환경의", "The school started an environmental club to plant more trees.", "silent", "n 을 빼먹기 쉬움"],
+["height", "높이", "The height of the mountain is very impressive.", "silent", "eigh · weight 와 같은 모양"],
+["sigh", "한숨 쉬다", "He sighed after the long day.", "silent", "끝이 gh"],
+["slightly", "약간, 조금", "The temperature dropped slightly as the sun went down.", "silent", "gh 를 빼먹지 않기"],
+["frightening", "무서운, 겁나는", "The loud noise was very frightening.", "silent", "gh 가 들어감"],
+["enough", "충분한", "There is enough water for everyone.", "silent", "끝이 ough"],
+["rhyme", "운율, 라임", "The poem has a fun rhyme.", "silent", "r 다음 h"],
+["scientist", "과학자", "My dream is to become a scientist and discover a new planet.", "silent", "sc 로 시작 · 가운데 ie"],
+["arctic", "북극의", "Polar bears live in the Arctic region.", "silent", "arc + tic · 첫 c 가 잘 안 들림"],
+["decision", "결정", "It was a difficult decision to make.", "tion", "-sion (decide 에서 d 가 s 로)"],
+["persuasion", "설득", "Her persuasion helped me make a good decision.", "tion", "-sion (persuade 에서)"],
+["determination", "결정", "Without determination, you cannot achieve your big goals.", "tion", "-tion · 가운데 min"],
+["imagination", "상상력", "The story uses a lot of imagination.", "tion", "-tion · 가운데 gin"],
+["administration", "행정, 관리", "The school administration planned the event.", "tion", "-tion · 가운데 nistra"],
+["consideration", "고려, 배려", "The teacher took our ideas into consideration before making a decision.", "tion", "-tion · consider + ation"],
+["deforestation", "삼림파괴", "Deforestation is one of the main causes of habitat loss for animals.", "tion", "de + forest + ation"],
+["circulation", "순환, 유통", "Exercise helps improve blood circulation.", "tion", "-tion · 가운데 cul"],
+["combination", "조합, 결합", "The combination of blue and yellow makes a beautiful green color.", "tion", "-tion · 가운데 bin"],
+["competition", "경쟁, 대회", "She practiced every day for the singing competition.", "tion", "-tion (compete 에서 e 가 i 로)"],
+["instructions", "설명, 지시 사항", "You must follow the instructions carefully to assemble the toy.", "tion", "-tions · 끝에 s"],
+["prediction", "예측, 예상", "His weather prediction was correct.", "tion", "-tion (predict + ion)"],
+["presentation", "발표", "She gave a great presentation in class.", "tion", "-tion · present + ation"],
+["expedition", "탐험, 탐사", "The team went on an expedition to study the jungle.", "tion", "-tion · 가운데 di"],
+["contribution", "기여, 공헌", "Her contribution helped the team win.", "tion", "-tion · 가운데 bu"],
+["population", "인구, 개체 수", "The city has a large population of over ten million people.", "tion", "-tion · 가운데 la"],
+["reflection", "거울에 비친 모습", "He is looking at his reflection and fixing his tie.", "tion", "-tion · 가운데 fle"],
+["inflation", "인플레이션", "Inflation makes food and other things more expensive.", "tion", "-tion · 가운데 fla"],
+["relationship", "관계", "A good relationship makes teamwork easier.", "tion", "relation + ship"],
+["traditional", "전통적인", "We always wear traditional clothes on New Year's Day.", "tion", "tradition + al"],
+["connection", "연결, 관계", "There is a strong connection between practice and success.", "tion", "n 이 둘 + -tion"],
+["solution", "해결책, 해답", "We worked together to find a solution to the problem.", "tion", "-tion · 가운데 lu"],
+["situation", "상황", "We talked about the situation and tried to solve the problem.", "tion", "-tion · 가운데 tua"],
+["belief", "믿음, 신념", "A growth mindset is the belief that you can always learn and get better.", "vowel", "ie · believe 의 명사형"],
+["receive", "받다", "I was happy to receive your letter.", "vowel", "c 다음에는 ei"],
+["species", "(생물의) 종", "Many species are disappearing because of climate change.", "vowel", "ie · 끝에 s"],
+["anxiety", "불안, 걱정", "She felt anxiety before the big test.", "vowel", "x 다음 ie · anxious 와 다름"],
+["neighbor", "이웃", "Our neighbor gave us some fresh fruit.", "vowel", "eigh · height 와 같은 모양"],
+["convenient", "편리한", "Online shopping is very convenient.", "vowel", "-ient 로 끝남"],
+["familiar", "익숙한, 친숙한", "The melody of the song sounded very familiar to me.", "vowel", "끝이 -iar (-ier 아님)"],
+["wealthy", "부유한", "Being wealthy doesn't always mean you are happy.", "vowel", "ea · wealth + y"],
+["sweaty", "땀이 난", "She felt uncomfortable because her hands became sweaty during the test.", "vowel", "ea · sweat + y"],
+["underneath", "아래에, 밑에", "The cat is hiding underneath the table.", "vowel", "under + neath · ea"],
+["journey", "여정, 여행", "They prepared all the necessary supplies for their long journey.", "vowel", "jour · ou 로 씀"],
+["theory", "이론, 학설", "His theory is interesting, but there is no proof to support it yet.", "vowel", "the + ory · eo"],
+["complaint", "불평, 항의", "The students had a complaint about the difficult homework.", "vowel", "ai · complain + t"],
+["dinosaur", "공룡", "Dinosaurs lived on Earth millions of years ago.", "vowel", "끝이 -saur"],
+["ordinary", "보통의, 평범한", "It was just an ordinary day until something strange happened.", "vowel", "-ary (-ory 아님)"],
+["laboratory", "실험실", "The students did a science experiment in the laboratory.", "vowel", "-ory (-ary 아님)"],
+["temperature", "온도, 기온", "When you have a fever, your body temperature goes up higher than normal.", "vowel", "tem-per-a-ture · a 를 빼먹기 쉬움"],
+["comfortable", "편안한", "The chair is very comfortable to sit on.", "suffix", "-able · comfort + able"],
+["uncomfortable", "불편한", "Wearing the wrong shoes can make long walks uncomfortable.", "suffix", "-able"],
+["valuable", "가치 있는", "Time is a very valuable thing.", "suffix", "value 의 e 를 빼고 -able"],
+["available", "이용 가능한, 시간이 있는", "The teacher is available after class to help you.", "suffix", "-able"],
+["flexible", "유연한", "We need a flexible approach to solve this complex problem.", "suffix", "-ible (-able 아님)"],
+["incredible", "믿기 힘든, 아주 훌륭한", "Seeing a thousand butterflies was incredible.", "suffix", "-ible"],
+["independent", "독립적인", "She is proud to be an independent learner.", "suffix", "-ent (-ant 아님)"],
+["constant", "끊임없는", "The constant noise from the construction site was very annoying.", "suffix", "-ant (-ent 아님)"],
+["magnificent", "장엄한, 훌륭한", "The view from the top of the palace was absolutely magnificent.", "suffix", "-cent 으로 끝남"],
+["confidence", "자신감", "She gained more confidence after passing the exam.", "suffix", "-ence (-ance 아님)"],
+["emergency", "비상 상황", "Call 119 in case of an emergency.", "suffix", "-ency"],
+["marvelous", "놀라운, 경이로운", "The king gave a marvelous speech.", "suffix", "-ous · l 은 하나 (미국식)"],
+["enormous", "거대한, 엄청난", "The elephant is an enormous animal.", "suffix", "-ous (-ious 아님)"],
+["generous", "관대한, 후한", "The company provides generous employee benefits.", "suffix", "-ous"],
+["obvious", "분명한", "It was obvious that he studied hard.", "suffix", "-ious"],
+["cautious", "조심스러운, 신중한", "My father is a very cautious driver, especially in the rain.", "suffix", "-tious"],
+["ambitious", "야망 있는, 열정적인", "She is an ambitious student who works hard to reach her goals.", "suffix", "-tious"],
+["forceful", "강압적인", "Why did he use such forceful language in the meeting?", "suffix", "force + ful · l 은 하나"],
+["incredibly", "믿을 수 없을 정도로", "That was incredibly brave of you.", "suffix", "-ibly (incredible 의 부사)"],
+["probably", "아마도", "If it doesn't rain, we will probably go to the park this weekend.", "suffix", "-ably · probab-ly"],
+["previously", "이전에, 미리", "The hotel was previously a large private house.", "suffix", "previous + ly"],
+["exactly", "정확히", "Can you tell me exactly what happened this morning?", "suffix", "exact + ly"],
+["technique", "기법, 기술", "This modern technique is more efficient than the old one.", "sound", "끝이 -que · 소리는 '텍'"],
+["unique", "독특한, 유일한", "The company is creating a unique platform for young artists.", "sound", "끝이 -que"],
+["mosquito", "모기", "A mosquito bit my arm while I was sleeping.", "sound", "qu 가 'ㅋ' 소리"],
+["earthquake", "지진", "The earthquake shook the building for a few seconds.", "sound", "earth + quake"],
+["chorus", "동시에 말하다", "Everyone chorused in agreement, showing that the decision was widely supported.", "sound", "ch 가 'ㅋ' 소리"],
+["echo", "메아리", "When he shouted loudly, the echo returned a few seconds later.", "sound", "ch 가 'ㅋ' 소리"],
+["mechanical", "기계의, 기계적인", "The robot has many mechanical parts.", "sound", "ch 가 'ㅋ' 소리"],
+["chemical", "화학물질", "We must wear safety glasses when we mix a chemical in the lab.", "sound", "ch 가 'ㅋ' 소리"],
+["architect", "건축가, 설계사", "This house was built by a world-famous architect.", "sound", "ch 가 'ㅋ' 소리"],
+["characteristic", "특징, 특성", "A long neck is a characteristic of a giraffe.", "sound", "ch 가 'ㅋ' 소리"],
+["choreography", "안무", "Learning choreography requires focus and memory.", "sound", "ch 가 'ㅋ' · 끝은 -graphy"],
+["archaeologist", "고고학자", "The archaeologist discovered ancient pottery buried deep underground.", "sound", "ch 가 'ㅋ' · 가운데 ae"],
+["mechanism", "기계장치", "The clock has a small mechanism inside.", "sound", "ch 가 'ㅋ' 소리"],
+["philosopher", "철학자", "The philosopher asked many questions about life.", "sound", "ph 가 'ㅍ' · 두 번 나옴"],
+["physical", "신체적인", "Do you think physical health is more important than mental health?", "sound", "ph 로 시작"],
+["amphibian", "양서류", "This rare amphibian was discovered deep in the Amazon rainforest.", "sound", "ph 가 'ㅍ' 소리"],
+["algae", "해조류", "We observed tiny algae under the microscope yesterday.", "sound", "끝이 -ae"],
+["larvae", "유충", "Scientists studied larvae to understand insect growth patterns.", "sound", "끝이 -ae"],
+["aeronautics", "항공학", "He studies aeronautics to design airplanes.", "sound", "ae 로 시작"],
+["genre", "장르", "My favorite movie genre is comedy.", "sound", "프랑스어 그대로 · -re 로 끝남"],
+["karate", "가라테", "He wears a white uniform for karate.", "sound", "일본어 그대로 · 끝에 e"],
+["bronze", "청동, 구리빛", "The old mechanical clock is made of bronze.", "sound", "끝이 -ze"],
+["sponge", "스펀지", "A sponge can hold more water than expected.", "sound", "끝이 -ge"],
+["linguist", "언어학자", "She is a linguist who studies how children learn new languages.", "sound", "gu 가 함께 다님"],
+["algorithm", "알고리즘", "The computer follows an algorithm to solve the problem.", "sound", "끝이 -thm"],
+["analysis", "분석", "After careful analysis, they found the cause of the problem.", "sound", "끝이 -ysis · analyze 와 다름"],
+["analyze", "분석하다", "The students will analyze the results of the experiment.", "sound", "-yze (영국식은 -yse)"],
+["oxygen", "산소", "Open the window to let some fresh oxygen into the classroom.", "sound", "ox + y + gen"],
+["hybrid", "잡종, 교배종", "This new fruit was created as a hybrid of an apple and a pear.", "sound", "y 가 'ㅏ이' 소리"],
+["lyrics", "가사", "The lyrics match the song's emotional tone well.", "sound", "y 가 'ㅣ' 소리"],
+["whether", "~인지 아닌지", "I don't know whether it will rain today.", "pair", "날씨 weather 와 소리가 똑같음 · wh 로 시작"],
+["stationary", "정지된", "The car hit a stationary truck.", "pair", "문구류 stationery 와 한 글자 차이 · 끝이 -ary"],
+["except", "~을 제외하고", "Everyone came to the party except Tom.", "pair", "받아들이다 accept 와 혼동 주의 · ex 로 시작"],
+["groan", "신음하다", "He groaned when he realized how much work remained.", "pair", "자란 것 grown 과 소리가 같음 · oa 로 씀"],
+["patience", "인내심", "You need patience to learn something new.", "pair", "환자들 patients 와 소리가 같음 · 끝이 -ience"],
+["grateful", "감사하는", "I am grateful for my friends and family.", "pair", "great 가 아니라 grate + ful"],
+["further", "더 이상의", "If you need further information, please visit our website.", "pair", "거리를 말할 때는 farther"],
+["anxious", "걱정하는, 불안한", "Feeling anxious can make it difficult to focus on simple tasks.", "pair", "명사 anxiety 와 철자가 달라짐 · -ious"],
+["shutter", "덧문", "The shutter stayed open, so the room felt bright.", "pair", "떨다 shudder 와 한 글자 차이 · t 가 둘"],
+["loyalty", "충성심, 충실함", "The dog showed great loyalty to its owner.", "pair", "왕족 royalty 와 첫 글자만 다름"],
+["illusion", "착각, 환상", "The magician created the illusion that the coin disappeared.", "pair", "넌지시 말함 allusion 과 첫 글자만 다름 · l 이 둘"],
+["quality", "품질", "The company is known for producing high-quality electronic goods.", "pair", "양을 뜻하는 quantity 와 혼동 주의"],
+["assure", "장담하다, 확언하다", "He assured his parents that he was studying hard.", "pair", "확실히 하다 ensure 와 혼동 주의 · s 가 둘"],
+["complex", "복잡한", "Although the problem seemed complex, the teacher explained it simply.", "pair", "complicated 와 뜻은 비슷해도 철자는 전혀 다름"]
+];
+
+
+window.onerror=function(m,s,l){var b=document.getElementById('errbar');if(b){b.className='';b.textContent='오류: '+m+' (줄 '+l+')'}};
+const el=id=>document.getElementById(id);
+const TTS=('speechSynthesis' in window)&&('SpeechSynthesisUtterance' in window);
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+
+/* ---------- speaking ---------- */
+let voice=null;
+function pickVoice(){ if(!TTS)return; const v=speechSynthesis.getVoices();
+  voice=v.find(x=>/en[-_]US/i.test(x.lang)&&/samantha|google|zira|female/i.test(x.name))||v.find(x=>/en[-_]US/i.test(x.lang))||v.find(x=>/^en/i.test(x.lang))||null; }
+if(TTS){pickVoice();speechSynthesis.onvoiceschanged=pickVoice}
+function say(t,rate){return new Promise(res=>{ if(!TTS){res();return}
+  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='en-US';u.rate=rate||.85;if(voice)u.voice=voice;u.onend=res;u.onerror=res;speechSynthesis.speak(u)}catch(e){res()} })}
+function sayWord(r){return say(cur().w,r||.8)}
+function spellOut(){return say(cur().w.split('').join(', '),.65)}
+
+/* ---------- letter-name parsing ---------- */
+const LETTER={ay:'a',eh:'a',bee:'b',be:'b',b:'b',see:'c',sea:'c',cee:'c',si:'c',dee:'d',de:'d',ee:'e',ea:'e',ef:'f',eff:'f',gee:'g',ge:'g',jee:'g',
+aitch:'h',haitch:'h',eigh:'h',eye:'i',aye:'i',ai:'i',jay:'j',jai:'j',kay:'k',cay:'k',ka:'k',el:'l',ell:'l',le:'l',em:'m',emm:'m',en:'n',enn:'n',
+oh:'o',owe:'o',ow:'o',pee:'p',pea:'p',pe:'p',cue:'q',queue:'q',kyu:'q',ar:'r',are:'r',arr:'r',er:'r',es:'s',ess:'s',esse:'s',tee:'t',tea:'t',te:'t',
+you:'u',yu:'u',ewe:'u',ue:'u',vee:'v',ve:'v',vi:'v',ex:'x',eks:'x',ecks:'x',why:'y',wy:'y',wai:'y',zee:'z',zed:'z',zi:'z',zeta:'z'};
+const FILLER=new Set(['is','spelled','spell','spelling','the','word','a','an','and','it','its','uh','um','please','capital','big','small']);
+function esc(s){return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}
+
+function parse(transcript,word){
+  let t=' '+transcript.toLowerCase().replace(/[^a-z\s'-]/g,' ')+' ';
+  t=t.replace(/-/g,' ');
+  const wre=new RegExp('\\b'+esc(word.toLowerCase())+'\\b','g');
+  const occ=(t.match(wre)||[]).length;
+  t=t.replace(wre,' ');
+  t=t.replace(/\bdouble\s+(u|you|yu|ew)\b/g,' w ');
+  const toks=t.split(/\s+/).filter(Boolean);
+  let out='';
+  for(const tk of toks){
+    if(LETTER[tk]!==undefined){out+=LETTER[tk];continue}
+    if(tk.length===1&&/[a-z]/.test(tk)){out+=tk;continue}
+    if(FILLER.has(tk))continue;
+    out+=tk;                       // merged chunk like "ppl" or a misheard word
+  }
+  return {letters:out,occ:occ};
+}
+function grade(texts,word){
+  const w=word.toLowerCase(); let best={letters:'',occ:0};
+  for(const t of texts){
+    const p=parse(t,word);
+    if(p.letters.length>best.letters.length||!best.letters) best=p;
+    if(p.letters.indexOf(w)>=0) return {ok:true,p:p};
+    if(p.letters.length===0&&p.occ>=2) return {ok:true,p:p};   // spelling merged into the word
+  }
+  return {ok:false,p:best};
+}
+
+/* ---------- listening ---------- */
+let rec=null,listening=false,texts=[],liveText='',autoStop=null;
+function setMic(on){
+  listening=on;
+  el('micBtn').classList.toggle('live',on);
+  el('micLabel').textContent=on?'말하는 중 · 눌러서 종료':'눌러서 말하기';
+}
+function startListen(){
+  if(!SR){ warn('이 브라우저는 음성 인식을 지원하지 않습니다. 크롬이나 사파리에서 열어 주세요.'); return }
+  if(TTS) speechSynthesis.cancel();
+  texts=[];liveText='';
+  el('heard').textContent='듣는 중…';el('heard').classList.remove('has');
+  try{
+    rec=new SR();
+  }catch(e){ warn('음성 인식을 시작할 수 없습니다: '+e.message); return }
+  rec.lang='en-US'; rec.continuous=true; rec.interimResults=true; rec.maxAlternatives=5;
+  rec.onresult=e=>{
+    let interim='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const r=e.results[i];
+      if(r.isFinal){ liveText+=' '+r[0].transcript;
+        for(let k=0;k<r.length;k++) texts.push(r[k].transcript);
+      } else interim+=r[0].transcript;
+    }
+    const any=(liveText+' '+interim).trim();
+    el('heard').textContent = any ? '잘 들리고 있어요 · 다 말했으면 버튼을 다시 누르세요' : '듣는 중…';
+    el('heard').classList.toggle('has', !!any);
+  };
+  rec.onerror=e=>{
+    if(e.error==='not-allowed'||e.error==='service-not-allowed') warn('마이크 권한이 거부되었습니다. 브라우저 주소창의 자물쇠 아이콘에서 마이크를 허용해 주세요.');
+    else if(e.error==='no-speech') el('heard').textContent='소리가 들리지 않았어요. 다시 눌러서 말해 보세요.';
+    else warn('음성 인식 오류: '+e.error);
+  };
+  rec.onend=()=>{ setMic(false); clearTimeout(autoStop); finishTurn(); };
+  try{ rec.start(); setMic(true); }catch(e){ warn('마이크를 열 수 없습니다: '+e.message); return }
+  clearTimeout(autoStop); autoStop=setTimeout(stopListen,15000);
+}
+function stopListen(){ if(rec&&listening){ try{rec.stop()}catch(e){ setMic(false) } } }
+function warn(msg){ const b=el('errbar'); b.className=''; b.textContent=msg; }
+
+/* ---------- state ---------- */
+const CATS=[
+  ['전체','all'],
+  ['-ed 로 끝나는 말','ed'],
+  ['겹치는 자음','dbl'],
+  ['소리 안 나는 글자','silent'],
+  ['-tion / -sion','tion'],
+  ['헷갈리는 모음','vowel'],
+  ['헷갈리는 어미','suffix'],
+  ['소리와 다른 철자','sound'],
+  ['비슷한 말과 짝','pair']];
+const SIZES=[['10문제',10],['20문제',20],['50문제',50],['전부',0]];
+let catIdx=0,sizeIdx=0,queue=[],qi=0,right=0,misses=[],done=false,lastOk=false;
+const cur=()=>queue[qi];
+
+function catCount(k){ return k==='all'?WORDS.length:WORDS.filter(w=>w[3]===k).length }
+function chips(){
+  el('rangeChips').innerHTML=CATS.map((c,i)=>`<button class="chip" data-i="${i}" aria-pressed="${i===catIdx}">${c[0]} <span style="opacity:.6">${catCount(c[1])}</span></button>`).join('');
+  el('sizeChips').innerHTML=SIZES.map((s,i)=>`<button class="chip" data-i="${i}" aria-pressed="${i===sizeIdx}">${s[0]}</button>`).join('');
+}
+chips();
+el('rangeChips').onclick=e=>{const b=e.target.closest('.chip');if(b){catIdx=+b.dataset.i;chips()}};
+el('sizeChips').onclick=e=>{const b=e.target.closest('.chip');if(b){sizeIdx=+b.dataset.i;chips()}};
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+const item=i=>({n:i+1,w:WORDS[i][0],m:WORDS[i][1],s:WORDS[i][2],c:WORDS[i][3],t:WORDS[i][4]});
+const catName=k=>(CATS.find(c=>c[1]===k)||['',''])[0];
+
+function run(items){
+  queue=items;qi=0;right=0;misses=[];
+  el('setup').classList.add('hide');el('result').classList.add('hide');el('quiz').classList.remove('hide');
+  ask();
+}
+el('startBtn').onclick=()=>{
+  if(TTS){try{speechSynthesis.resume();speechSynthesis.speak(new SpeechSynthesisUtterance(' '))}catch(e){}}
+  if(!SR) warn('이 브라우저는 음성 인식을 지원하지 않습니다. 듣기와 정답 확인은 되지만 자동 채점은 수동 버튼으로 해 주세요.');
+  const key=CATS[catIdx][1];
+  let pool=[];for(let i=0;i<WORDS.length;i++){ if(key==='all'||WORDS[i][3]===key) pool.push(item(i)); }
+  shuffle(pool);
+  const n=SIZES[sizeIdx][1]; if(n>0)pool=pool.slice(0,n);
+  run(pool);
+};
+
+function ask(){
+  done=false;
+  el('fbBox').classList.add('hide');el('heardPanel').classList.remove('hide');
+  el('heard').textContent='마이크 버튼을 누르고 또박또박 말하세요';el('heard').classList.remove('has');
+  el('askInfo').textContent='';
+  el('pos').textContent=`${qi+1} / ${queue.length}번째`;
+  el('tally').textContent=`맞은 개수 ${right}`;
+  el('bar').style.width=(qi/queue.length*100)+'%';
+  const w=cur().w;
+  el('scriptEx').textContent=`${w.toLowerCase()}, ${w.toLowerCase().split('').join('-')}, ${w.toLowerCase()}`;
+  el('scriptEx').style.filter='blur(5px)';
+  sayWord();
+}
+
+function finishTurn(){
+  if(done) return;
+  if(!texts.length){ el('heard').textContent='인식된 말이 없어요. 마이크를 다시 눌러 주세요.'; return }
+  done=true;
+  const g=grade(texts,cur().w);
+  lastOk=g.ok;
+  if(g.ok) right++; else misses.push({...cur(),heard:liveText.trim()});
+  show(g);
+}
+
+function show(g){
+  el('heardPanel').classList.add('hide');
+  el('fbBox').classList.remove('hide');
+  el('scriptEx').style.filter='none';
+  const v=el('verdict');
+  v.textContent=lastOk?'맞았어요':'다시 볼 단어';
+  v.className='verdict '+(lastOk?'ok':'no');
+  el('spell').textContent=cur().w.split('').join(' ');
+  el('meaning').textContent=cur().m;
+  el('tip').innerHTML=`<b>${catName(cur().c)}</b> · ${cur().t}`;
+  const re=new RegExp('\\b'+esc(cur().w)+'\\w*','i');
+  el('sentence').innerHTML=cur().s.replace(re,m=>`<em>${m}</em>`);
+  el('flipBtn').textContent=lastOk?'아니요, 틀렸어요':'아니요, 맞았어요';
+  el('tally').textContent=`맞은 개수 ${right}`;
+  el('fbInfo').innerHTML=`들린 말: ${liveText.trim().replace(/</g,'&lt;')||'—'}<br>철자로 읽은 것: <code>${(g.p.letters||'—')}</code>`;
+}
+
+el('flipBtn').onclick=()=>{
+  if(lastOk){ right--; misses.push({...cur(),heard:liveText.trim()}); lastOk=false; }
+  else { right++; const i=misses.findIndex(m=>m.n===cur().n); if(i>=0)misses.splice(i,1); lastOk=true; }
+  const v=el('verdict'); v.textContent=lastOk?'맞음으로 고쳤어요':'틀림으로 고쳤어요';
+  v.className='verdict '+(lastOk?'ok':'no');
+  el('flipBtn').textContent=lastOk?'아니요, 틀렸어요':'아니요, 맞았어요';
+  el('tally').textContent=`맞은 개수 ${right}`;
+};
+
+function next(){ qi++; if(qi>=queue.length) finish(); else ask(); }
+
+function finish(){
+  stopListen();
+  el('quiz').classList.add('hide');el('result').classList.remove('hide');
+  const n=qi||queue.length;
+  el('bar').style.width='100%';
+  el('scoreLine').innerHTML=`${right} <small>/ ${n} 개 맞음</small>`;
+  const p=n?right/n:0;
+  el('resultMsg').textContent=p===1?'전부 맞았어요. 다른 유형으로 넘어가도 좋아요.'
+    :p>=.8?'거의 다 왔어요. 틀린 것만 한 번 더 말해 보세요.'
+    :'틀린 단어는 철자를 천천히 소리 내어 세 번 말한 뒤 다시 도전해 보세요.';
+  if(misses.length){
+    el('missPanel').classList.remove('hide');el('retryBtn').classList.remove('hide');
+    el('missList').innerHTML=misses.map(m=>`<li><b>${m.w.split('').join(' ')}</b> <span>${m.m}</span><i>${m.t}</i></li>`).join('');
+  }else{ el('missPanel').classList.add('hide');el('retryBtn').classList.add('hide') }
+}
+
+el('micBtn').onclick=()=>{ if(listening) stopListen(); else startListen(); };
+el('playBtn').onclick=()=>sayWord();
+el('slowBtn').onclick=()=>sayWord(.5);
+el('defBtn').onclick=()=>{ el('askInfo').textContent='뜻 — '+cur().m };
+el('sentBtn').onclick=()=>say(cur().s,.85);
+el('spellOutBtn').onclick=spellOut;
+el('nextBtn').onclick=next;
+el('quitBtn').onclick=finish;
+el('retryBtn').onclick=()=>run(shuffle(misses.map(m=>item(m.n-1))));
+el('homeBtn').onclick=()=>{el('result').classList.add('hide');el('setup').classList.remove('hide')};
+</script>
+</body>
+</html>
